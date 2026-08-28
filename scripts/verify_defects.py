@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 
 import os
-BASE = os.getenv("BASE", "http://localhost:8090")
+BASE = os.getenv("BASE", "http://localhost:8080")
 
 
 def call(method, path, body=None, headers=None):

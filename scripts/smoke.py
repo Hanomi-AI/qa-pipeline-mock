@@ -5,7 +5,7 @@ This is NOT the validation harness the assignment asks for. It only proves the
 service works. Deliberately dumb: no tolerance logic, no golden comparison, no
 event consumption. That part is the candidate's job.
 
-    python scripts/smoke.py [--n 12] [--base http://localhost:8080]
+    python scripts/smoke.py [--n 12] [--base URL]  (or set BASE=)
 """
 import argparse
 import os
@@ -39,7 +39,7 @@ def call(method, url, body=None, headers=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=12)
-    ap.add_argument("--base", default=os.getenv("BASE", "http://localhost:8090"))
+    ap.add_argument("--base", default=os.getenv("BASE", "http://localhost:8080"))
     ap.add_argument("--timeout", type=int, default=180)
     a = ap.parse_args()
     B = a.base.rstrip("/")
