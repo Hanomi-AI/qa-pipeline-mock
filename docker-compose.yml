@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pipeline
+      POSTGRES_PASSWORD: pipeline
+      POSTGRES_DB: pipeline
+    ports: ["${PG_PORT:-5432}:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pipeline"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports: ["${AMQP_PORT:-5672}:5672", "${RABBIT_UI_PORT:-15672}:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: on-failure
+    ports: ["${API_PORT:-8080}:8080"]
+    environment:
+      DATABASE_URL: postgresql://pipeline:pipeline@postgres:5432/pipeline
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+      SEED: "${SEED:-20260828}"
+      WORKER_COUNT: "${WORKER_COUNT:-4}"
+      FAIL_RATE: "${FAIL_RATE:-0.06}"
+      LATENCY_MS: "${LATENCY_MS:-1.0}"
+      HANG_RATE: "${HANG_RATE:-0.01}"
+      DRIFT_PCT: "${DRIFT_PCT:-0.04}"
+      SCHEMA_DRIFT: "${SCHEMA_DRIFT:-0.02}"
+      UNIT_FLIP: "${UNIT_FLIP:-0.0}"
+      DUPLICATE_WEBHOOKS: "${DUPLICATE_WEBHOOKS:-0.10}"
+      EVENT_DUP_RATE: "${EVENT_DUP_RATE:-0.08}"
+      EVENT_DROP_RATE: "${EVENT_DROP_RATE:-0.03}"
+      EVENT_REORDER_RATE: "${EVENT_REORDER_RATE:-0.10}"
+      POISON_RATE: "${POISON_RATE:-0.005}"
+      DEFECTS: "${DEFECTS:-}"
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_UI_DEFECTS: "${UI_DEFECTS:-}"
+        NEXT_PUBLIC_API_BASE: "http://localhost:${API_PORT:-8080}"
+    ports: ["${UI_PORT:-3000}:3000"]
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:${API_PORT:-8080}
+    depends_on: [backend]
